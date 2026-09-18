@@ -1,0 +1,11 @@
+# Prior Authorization Appeal Agent
+# No paid API keys required -- uses free NCBI PubMed E-utilities API
+# All dependencies are Python standard library except optional extras below
+
+# Core: uses only Python stdlib (urllib, json, dataclasses, argparse, unittest, re, time)
+
+# Optional: for enhanced output formatting
+colorama>=0.4.6
+
+# Optional: for running tests with more detail
+pytest>=7.4.0
