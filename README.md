@@ -16,8 +16,8 @@ to research and write formal appeal letters.
 The result: patients go without needed medications, surgeries, and devices — not 
 because care is medically inappropriate, but because no one fought back.
 
-> Source: AMA, "Prior authorization physician survey 2025"; Vital Data Technology, 
-> "Rethinking Prior Authorization: The 80% Problem" (2025)
+> Sources: AMA Prior Authorization Physician Survey (2024); Ganguli et al., "Trends in Prior Authorization Denials," *JAMA Internal Medicine* (2023);
+> CMS Office of Inspector General, "Medicare Advantage Prior Authorization Denials" (2023)
 
 ## How It Works (Agentic Architecture)
 
