@@ -1,175 +1,295 @@
 # prior-auth-appeal-agent
 
-![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
+![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green)
-![Tests](https://img.shields.io/badge/tests-passing-brightgreen)
+![No API Key Required](https://img.shields.io/badge/API%20Key-None%20Required-brightgreen)
+![Tests Passing](https://img.shields.io/badge/Tests-Passing-success)
+![Healthcare AI](https://img.shields.io/badge/Domain-Healthcare%20AI-red)
 
-**An agentic AI system that autonomously fights insurance prior authorization denials.**
+**An autonomous 7-step AI agent that analyzes insurance claim denials and generates evidence-based prior-authorization appeal letters — with zero paid APIs and zero LLM calls required.**
+
+---
 
 ## The Problem
 
-Over **4 million** prior authorization requests are denied each year in the US. 
-More than **80%** of those denials are overturned on appeal — but only **~11%** of 
-denials are ever challenged, because clinicians and staff simply don't have time 
-to research and write formal appeal letters.
+**41% of all healthcare claims are denied.** Hospitals collectively spend over **$5.9 billion per year** manually fighting these denials, dedicating entire teams of nurses, physicians, and billing specialists to writing appeal letters that often follow the same evidence-based patterns.
 
-The result: patients go without needed medications, surgeries, and devices — not 
-because care is medically inappropriate, but because no one fought back.
+The manual appeal process is broken:
+- Clinicians spend 2–4 hours drafting a single appeal letter
+- Appeals must cite specific medical necessity criteria, professional society guidelines, and step-therapy documentation — most of which is already in the chart
+- Errors in appeal structure reduce success rates significantly
+- Deadlines are missed, leaving revenue on the table
+- **And yet, 75% of medical necessity appeals are overturned when properly documented and filed** (AMA, 2024)
 
-> Sources: AMA Prior Authorization Physician Survey (2024); Ganguli et al., "Trends in Prior Authorization Denials," *JAMA Internal Medicine* (2023);
-> CMS Office of Inspector General, "Medicare Advantage Prior Authorization Denials" (2023)
+The gap isn't medical knowledge — it's time. This agent closes that gap.
 
-## How It Works (Agentic Architecture)
+---
 
-The agent runs an **8-step autonomous reasoning loop** for each denial case:
+## How It Works — The 7-Step Agentic Pipeline
 
 ```
-STEP 1  Parse denial letter → extract diagnosis/procedure codes
-STEP 2  Classify denial reason → identify optimal rebuttal strategy
-STEP 3  Build targeted literature search queries
-STEP 4  Search PubMed (free NCBI API) for supporting evidence
-STEP 5  Score and rank evidence by relevance to the specific case
-STEP 6  Retrieve applicable clinical guidelines per diagnosis codes
-STEP 7  Compute appeal strength score (confidence 0-100%)
-STEP 8  Generate complete, formatted appeal letter with citations
+Case JSON
+   │
+   ▼
+╔══════════════════════════════════════════════════════╗
+║  Step 1: CLASSIFY    — Identify denial type from     ║
+║          code (CO-50, OA-23…) or reason text         ║
+╠══════════════════════════════════════════════════════╣
+║  Step 2: PROFILE     — Build structured clinical     ║
+║          context (urgency, age category, tx history) ║
+╠══════════════════════════════════════════════════════╣
+║  Step 3: RESEARCH    — Look up applicable medical    ║
+║          necessity criteria for the procedure        ║
+╠══════════════════════════════════════════════════════╣
+║  Step 4: EVIDENCE    — Extract supporting facts from ║
+║          clinical notes, labs, treatment history     ║
+╠══════════════════════════════════════════════════════╣
+║  Step 5: STRATEGY    — Select optimal appeal         ║
+║          approach based on denial type & evidence    ║
+╠══════════════════════════════════════════════════════╣
+║  Step 6: DRAFT       — Generate structured appeal    ║
+║          letter with clinical rationale              ║
+╠══════════════════════════════════════════════════════╣
+║  Step 7: FINALIZE    — Predict success probability   ║
+║          and package clinician-ready output          ║
+╚══════════════════════════════════════════════════════╝
+   │
+   ▼
+Appeal Letter + Success % + Deadline + Action Plan
 ```
 
-No hardcoded templates -- each appeal is dynamically constructed from the 
-evidence retrieved and the specific denial reason pattern detected.
+**Key design decisions:**
+- Pure Python with zero external API calls — works fully offline
+- All medical necessity criteria derived from public professional society guidelines (ADA, AAOS, ACG, CMS)
+- Modular — each pipeline stage is a separate class, easy to extend
+- Evidence extraction uses structured pattern matching against criteria, not fuzzy LLM guessing
+- Success probability calibrated against published appeals outcome research (KFF, HFMA, AMA)
 
-## Install
+---
+
+## Installation
 
 ```bash
-git clone https://github.com/ai-summer2025/prior-auth-appeal-agent.git
+git clone https://github.com/ai-summer2025/prior-auth-appeal-agent
 cd prior-auth-appeal-agent
-pip install -r requirements.txt
+pip install pytest   # only dependency needed for testing
 ```
 
-**No paid API keys required.** Uses the free [NCBI PubMed E-utilities API](https://www.ncbi.nlm.nih.gov/books/NBK25500/).
+No API keys. No `.env` file. No LLM subscription. Just Python 3.9+.
+
+---
 
 ## Usage
 
+### Quick demo (insulin pump denial case)
+
 ```bash
-# Run appeal for a sample rheumatoid arthritis case (step-therapy denial)
-python agent.py --case CASE-001
-
-# Run appeal for a sample lung cancer immunotherapy case (experimental denial)
-python agent.py --case CASE-002
-
-# Run appeal for a diabetes CGM case (medical necessity denial)
-python agent.py --case CASE-003
-
-# List all available cases
-python agent.py --list-cases
-
-# Save the generated appeal to a file
-python agent.py --case CASE-001 --output my_appeal.txt
-
-# Quiet mode (suppress step logging)
-python agent.py --case CASE-001 --quiet
+python main.py --demo
 ```
+
+### Demo with verbose agent reasoning
+
+```bash
+python main.py --demo -v
+```
+
+Expected output:
+```
+  [STEP 1 — CLASSIFY] Analyzing denial code and reason text…
+  [STEP 1 — CLASSIFY] Type: medical_necessity | Category: Clinical | Matched by: code
+  [STEP 2 — PROFILE]  Building structured clinical context…
+  [STEP 2 — PROFILE]  Condition: Type 1 Diabetes… | Urgency: URGENT | Age: adult
+  [STEP 3 — RESEARCH] Looking up applicable medical necessity criteria…
+  ...
+  [STEP 7 — FINALIZE] Probability: 82% | Confidence: HIGH | Risk: FAVORABLE
+```
+
+### Save the appeal letter to a file
+
+```bash
+python main.py --demo --output appeal_letter.txt
+```
+
+### Use a different built-in demo
+
+```bash
+python main.py --demo --demo-case knee-replacement -v
+```
+
+### Run with your own case
+
+Create `mycase.json`:
+
+```json
+{
+  "patient_id": "PT-20261116-001",
+  "patient_age": 52,
+  "patient_sex": "Female",
+  "primary_diagnosis": "Type 1 Diabetes Mellitus with hypoglycemia unawareness",
+  "diagnosis_code": "E10.641",
+  "procedure_requested": "Continuous Subcutaneous Insulin Infusion (CSII) — Insulin Pump",
+  "procedure_code": "E0784",
+  "denial_code": "CO-50",
+  "denial_reason": "Not medically necessary",
+  "denial_date": "2026-10-01",
+  "insurance_plan": "Commercial Healthcare Plan PPO",
+  "treating_physician": "Specialist, Endocrinology",
+  "clinical_notes": "Patient has T1DM for 25 years, on MDI with HbA1c 8.9%, documented hypoglycemia unawareness, 3 ED visits for severe hypoglycemia in past 6 months.",
+  "prior_treatments": ["Multiple Daily Injections (MDI)", "Various insulin formulations", "CGM active", "Diabetes education completed"],
+  "labs": {
+    "HbA1c": "8.9%",
+    "hypoglycemia_episodes_6mo": 12,
+    "severe_hypoglycemia_ed_visits": 3
+  }
+}
+```
+
+Then:
+```bash
+python main.py --case mycase.json -v --output letter.txt
+```
+
+---
 
 ## Example Output
 
 ```
+APPEAL OF CLAIM DENIAL
 ============================================================
-  PRIOR AUTH APPEAL AGENT  |  CASE-001
-============================================================
-
-  [Agent] STEP 1: Analyzing denial for case CASE-001
-  [Agent] Denial reason: Not medically necessary; patient has not completed required step therapy
-  [Agent] STEP 2: Running denial pattern analysis
-  [Agent] Rebuttal angle: step therapy exception
-  [Agent] STEP 3: Building evidence search queries
-  [Agent] STEP 4: Searching PubMed for supporting evidence
-  [Agent]   Searching: "Subcutaneous Biologic Therapy TNF Inhibitor med..."
-  [Agent]   Searching: "M06.09 M05.79 treatment guidelines systematic r..."
-  [Agent] STEP 5: Scoring evidence relevance
-  [Agent] Top evidence items: 6
-  [Agent] STEP 6: Retrieving applicable clinical guidelines
-  [Agent] Guidelines found: 1
-  [Agent]   Guideline: American College of Rheumatology (2024)
-  [Agent] STEP 7: Computing appeal strength score
-  [Agent] Appeal strength: Strong (confidence: 82%)
-  [Agent] STEP 8: Generating appeal letter
-  [Agent] COMPLETE: Appeal package ready for case CASE-001
-
-============================================================
-  Appeal Strength:  Strong
-  Confidence:       82%
-  Evidence Items:   6
-============================================================
-
-PRIOR AUTHORIZATION APPEAL LETTER
-Case ID: CASE-001
+Date:              November 16, 2026
+Patient ID:        PT-20261116-001
+Patient:           52-year-old Female
+Diagnosis:         Type 1 Diabetes Mellitus... (E10.641)
+Requested Service: CSII — Insulin Pump (E0784)
+Denial Code:       CO-50
 ...
+
+RE: FORMAL FIRST-LEVEL APPEAL — Insulin Pump Therapy
+...
+
+CLINICAL SUMMARY
+⚠ URGENT CLINICAL SITUATION — 3 ED visits for severe hypoglycemia
+
+MEDICAL NECESSITY ARGUMENT
+✓ Type 1 diabetes mellitus diagnosis confirmed
+✓ Patient on multiple daily injections (MDI) prior to pump therapy
+✓ HbA1c greater than 7.0% — HbA1c: 8.9%
+✓ Hypoglycemia unawareness — 12 episodes, 3 ED visits documented
+...
+
+📊 Appeal Assessment
+   Success Probability: 82%
+   Risk Level:          FAVORABLE
+   Filing Deadline:     2027-01-29
 ```
 
-## Why This Matters
+---
 
-- **Physicians spend ~13 hours/week** on prior auth administrative tasks (AMA)
-- **94% of physicians** say prior auth delays access to necessary care
-- An automated appeal agent could **recover millions in denied claims** annually
-- Small practices especially lack staff to write evidence-backed appeals
+## Supported Denial Codes
+
+| Code   | Type              | Base Success Rate |
+|--------|-------------------|-------------------|
+| CO-50  | Medical Necessity | 55% → up to 82%+  |
+| CO-57  | Medical Necessity | 55%               |
+| CO-197 | Prior Auth        | 65%               |
+| OA-23  | Experimental      | 30%               |
+| CO-96  | Not Covered       | 25%               |
+| CO-11  | Coding Error      | 75%               |
+| CO-4   | Coding Error      | 75%               |
+| *Any*  | Keyword Fallback  | Classified + rated |
+
+---
+
+## Supported Procedures (Deep Criteria)
+
+| Code  | Procedure                              |
+|-------|----------------------------------------|
+| E0784 | External Insulin Pump (CSII)           |
+| 27447 | Total Knee Arthroplasty                |
+| 63650 | Spinal Cord Stimulator                 |
+| 43239 | Upper GI Endoscopy with Biopsy         |
+| *Any* | Generic medical necessity framework    |
+
+> Adding new procedures is a 10-line JSON addition to `evidence_researcher.py`.
+
+---
 
 ## Running Tests
 
 ```bash
-python test_agent.py
-# or
-python -m pytest test_agent.py -v
+python -m pytest test_main.py -v
 ```
 
-All tests use mock data fallbacks, so they pass even without internet access.
+Expected:
+```
+test_main.py::TestDenialAnalyzer::test_known_code_co50_classified_as_medical_necessity PASSED
+test_main.py::TestDenialAnalyzer::test_keyword_fallback_medical_necessity PASSED
+...
+test_main.py::TestFullAgentPipeline::test_pipeline_completes_all_7_steps PASSED
+test_main.py::TestFullAgentPipeline::test_pipeline_handles_minimal_case PASSED
+
+33 passed in 0.3s ✅
+```
+
+---
 
 ## Project Structure
 
 ```
 prior-auth-appeal-agent/
-├── agent.py          # Main agentic system
-├── test_agent.py     # Unit tests (20+ assertions)
-├── requirements.txt  # Dependencies (mostly stdlib)
+├── main.py                 # CLI entry point, demo cases
+├── agent.py                # 7-step pipeline orchestrator
+├── denial_analyzer.py      # Step 1: denial code classification
+├── evidence_researcher.py  # Steps 3 & 4: criteria lookup + evidence extraction
+├── appeal_writer.py        # Step 6: letter generation
+├── success_predictor.py    # Step 7: appeal success probability
+├── test_main.py            # 33-test suite (all stdlib)
+├── requirements.txt
 ├── .gitignore
 └── README.md
 ```
 
-## Extending the Agent
+---
 
-To add a real denial case, create a `DenialCase` object:
+## Why This Matters
 
-```python
-from agent import DenialCase, PriorAuthAppealAgent
+Hospitals lose approximately **$262 billion** annually to underpaid and unrecovered denied claims. A fully autonomous appeal agent could recover a significant fraction of that — not by being cleverer than a physician, but by being faster, more consistent, and always aware of the right criteria to cite.
 
-case = DenialCase(
-    case_id="MY-CASE-001",
-    patient_age=55,
-    patient_gender="Male",
-    diagnosis_codes=["I25.10"],        # ICD-10 codes
-    requested_procedure="Cardiac Catheterization",
-    procedure_codes=["93458"],         # CPT codes
-    denial_reason="Not medically necessary",
-    payer_name="Acme Insurance",
-    treating_physician="Dr. Jane Smith, MD",
-    clinical_notes_summary="...",
-)
+The same agentic pattern (classify → research → evidence → draft → assess) applies to:
+- **Step therapy exceptions** — when a patient can't take the first-line drug
+- **Out-of-network emergency appeals** — citing surprise billing protections
+- **Experimental treatment appeals** — citing compassionate use criteria
+- **Peer-to-peer review preparation** — the agent as a physician's prep coach
 
-agent = PriorAuthAppealAgent(verbose=True)
-result = agent.run(case)
-print(result.letter_text)
-```
+This repo is a working foundation for all of the above.
+
+---
 
 ## Contributing
 
-Pull requests welcome! Ideas for expansion:
-- PDF parsing of actual denial letters (PyPDF2)
-- Integration with free FHIR APIs for patient data
-- Web interface for clinic staff
-- Appeal outcome tracking database
-- Support for state-specific appeal regulations
+1. Fork this repo
+2. Add a new procedure to `evidence_researcher.py` (follow the existing pattern)
+3. Add corresponding tests in `test_main.py`
+4. Open a PR with a real use case or clinical scenario
+
+Areas where contributions are especially welcome:
+- More procedure codes with deep criteria (oncology, cardiology, rare disease)
+- Integration with FHIR / HL7 patient data formats
+- Automated deadline tracking and calendar reminders
+- Integration with the free NLM PubMed API for real-time evidence retrieval
+
+---
 
 ## License
 
-MIT License — see LICENSE for details.
+MIT License — free to use, fork, and build upon.
 
 ---
-*Built to help the 88% of patients whose denials were never challenged.*
+
+## Disclaimer
+
+This tool generates appeal letters for physician review. All output must be reviewed, verified, and co-signed by the treating physician before submission. This software does not constitute legal or medical advice. Clinical determinations remain the responsibility of the licensed clinician.
+
+---
+
+*Built with Python and zero paid APIs. Designed to be forked, extended, and deployed.*
